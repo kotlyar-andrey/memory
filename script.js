@@ -78,19 +78,7 @@ class Game {
   }
 
   _init() {
-    const numbersArray = Array.from(
-      { length: this._cards_left },
-      (_, i) => i + 1
-    );
-    numbersArray.sort(() => 0.5 - Math.random());
-
-    const cards = numbersArray.map((number) => {
-      const card = new Card(this._image_type, number);
-      card.node.addEventListener("click", () => {
-        this._cardClick(card);
-      });
-      return card;
-    });
+    const cards = this._createCards();
     cards.forEach((card) => {
       this._game.appendChild(card.node);
     });
@@ -99,6 +87,25 @@ class Game {
     this._game.classList.add(`columns_${this._cols}`);
 
     //this.start();
+  }
+
+  _createCards() {
+    const numbersArray = Array.from(
+      { length: this._cards_left },
+      (_, i) => i + 1
+    );
+    numbersArray.sort(() => 0.5 - Math.random());
+    const cards = numbersArray.map((number) => {
+      const card =
+        this._image_type === "colors"
+          ? new ColorCard(number)
+          : new ImageCard(this._image_type, number);
+      card.node.addEventListener("click", () => {
+        this._cardClick(card);
+      });
+      return card;
+    });
+    return cards;
   }
 
   start() {
@@ -121,7 +128,9 @@ class Game {
 
   checkCards() {
     this._click_enable = false;
-    if (this._first_card.coupleNumber === this._second_card.coupleNumber) {
+    if (
+      this._first_card.getCoupleNumber() === this._second_card.getCoupleNumber()
+    ) {
       this.roundWin();
     } else {
       this.roundLose();
@@ -227,20 +236,7 @@ class Card {
     this._state = "close";
     this.node = this._getNode();
   }
-  _getNode() {
-    const node = document.createElement("div");
-    node.classList.add("card");
-    node.innerHTML = `
-    <div class="card__flipper">
-        <div class="card__front"></div>
-        <div class="card__back">
-          <img src="images/${this._type}/${this.coupleNumber}.png" alt="image 1" />
-        </div>
-      </div>
-    `;
 
-    return node;
-  }
   open() {
     this._state = "open";
     this.node.classList.add("open");
@@ -254,7 +250,7 @@ class Card {
     this.node.classList.remove("open");
   }
 
-  get coupleNumber() {
+  getCoupleNumber() {
     return Math.ceil(this._id / 2);
   }
 
@@ -263,8 +259,97 @@ class Card {
   }
 }
 
+class ImageCard extends Card {
+  constructor(type, id) {
+    super(type, id);
+  }
+
+  _getNode() {
+    const node = document.createElement("div");
+    node.classList.add("card");
+    node.innerHTML = `
+    <div class="card__flipper">
+        <div class="card__front"></div>
+        <div class="card__back">
+          <img src="images/${
+            this._type
+          }/${this.getCoupleNumber()}.png" alt="image 1" />
+        </div>
+      </div>
+    `;
+    return node;
+  }
+}
+
+class ColorCard extends Card {
+  constructor(id) {
+    super("colors", id);
+  }
+  _getNode() {
+    const node = document.createElement("div");
+    node.classList.add("card");
+    node.innerHTML = `
+    <div class="card__flipper">
+        <div class="card__front"></div>
+        <div class="card__back">
+          <div class="card__color" style="background-color: ${this._getColor()}"></div>
+        </div>
+      </div>
+    `;
+    return node;
+  }
+
+  _getColor() {
+    const colors = [
+      "#FF0000",
+      "#00FF00",
+      "#0000FF",
+      "#ffff00",
+      "#00ffff",
+      "#ff00ff",
+
+      "#800000",
+      "#008000",
+      "#000080",
+      "#808000",
+      "#800080",
+      "#008080",
+
+      "#000000",
+      "#ffffff",
+      "#808080",
+      "#ff8080",
+      "#8080ff",
+      "#80ff80",
+
+      "#ff8000",
+      "#ff0080",
+      "#80ff00",
+      "#8000ff",
+      "#00ff80",
+      "#0080ff",
+
+      "#3388aa",
+      "#33aa88",
+      "#88aa33",
+      "#8833aa",
+      "3aa3388",
+      "#aa8833",
+
+      "#1199ff",
+      "#ff9911",
+      "#99ff11",
+      "#11ff99",
+      "#ff1199",
+      "#9911ff",
+    ];
+    const couple_number = this.getCoupleNumber();
+    return colors[couple_number];
+  }
+}
+
 MIN_CARDS = 2;
-MAX_CARDS = 10;
+MAX_CARDS = 8;
 
 const settings = new Settings();
 // game.init();
