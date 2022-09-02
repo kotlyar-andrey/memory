@@ -120,7 +120,7 @@ class Game {
   }
 
   start() {
-    const timer = new Timer(this._game_timer);
+    const timer = new Timer();
     timer.start();
   }
 
@@ -188,9 +188,9 @@ class Game {
  * Таймер. Занимается отсчетом времени и возвращает затраченное время.
  */
 class Timer {
-  constructor(target) {
+  constructor() {
     this._seconds = 0;
-    this._target = target;
+    this._target = document.getElementById();
   }
 
   start() {
