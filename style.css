@@ -173,7 +173,7 @@ body {
   perspective: 1000px;
 }
 
-.card.hide {
+.card.remove {
   visibility: hidden;
 }
 

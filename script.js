@@ -66,46 +66,57 @@ class Settings {
  */
 class Game {
   constructor(rows, columns, image_type) {
-    this._game = document.querySelector(".game");
+    this._target = document.querySelector(".game");
     this._rows = rows;
     this._cols = columns;
-    this._image_type = image_type;
+    this._card_type = image_type;
     this._click_enable = true;
     this._first_card = null;
     this._second_card = null;
-    this._cards_left = this._rows * this._cols;
+    this._cards_amount = this._rows * this._cols;
     this._init();
   }
 
   _init() {
     const cards = this._createCards();
     cards.forEach((card) => {
-      this._game.appendChild(card.node);
+      this._target.appendChild(card.node);
     });
 
-    this._game.classList.remove("none");
-    this._game.classList.add(`columns_${this._cols}`);
+    this._target.classList.remove("none");
+    this._target.classList.add(`columns_${this._cols}`);
 
     //this.start();
   }
 
   _createCards() {
-    const numbersArray = Array.from(
-      { length: this._cards_left },
-      (_, i) => i + 1
-    );
-    numbersArray.sort(() => 0.5 - Math.random());
+    const numbersArray = this._getRandomArray(this._cards_amount);
     const cards = numbersArray.map((number) => {
-      const card =
-        this._image_type === "colors"
-          ? new ColorCard(number)
-          : new ImageCard(this._image_type, number);
+      const card = this._createCard(this._card_type, number);
       card.node.addEventListener("click", () => {
         this._cardClick(card);
       });
       return card;
     });
     return cards;
+  }
+
+  _getRandomArray(length) {
+    const numbersArray = Array.from({ length }, (_, i) => i + 1);
+    numbersArray.sort(() => 0.5 - Math.random());
+    return numbersArray;
+  }
+
+  _createCard(type, number) {
+    switch (type) {
+      case "girls":
+      case "monsters":
+        return new ImageCard(type, number);
+      case "colors":
+        return new ColorCard(number);
+      default:
+        return new ColorCard(number);
+    }
   }
 
   start() {
@@ -121,46 +132,46 @@ class Game {
         this._first_card = card;
       } else {
         this._second_card = card;
-        this.checkCards();
+        this._checkCards();
       }
     }
   }
 
-  checkCards() {
+  _checkCards() {
     this._click_enable = false;
     if (
       this._first_card.getCoupleNumber() === this._second_card.getCoupleNumber()
     ) {
-      this.roundWin();
+      this._roundWin();
     } else {
-      this.roundLose();
+      this._roundLose();
     }
   }
 
-  roundWin() {
+  _roundWin() {
     this._first_card.remove();
     this._second_card.remove();
-    this._cards_left -= 2;
-    this.checkGameWin();
+    this._cards_amount -= 2;
+    this._checkGameWin();
   }
 
-  roundLose() {
+  _roundLose() {
     setTimeout(() => {
       this._first_card.close();
       this._second_card.close();
-      this.cardsReset();
+      this.roundReset();
     }, 1000);
   }
 
-  checkGameWin() {
-    if (this._cards_left === 0) {
+  _checkGameWin() {
+    if (this._cards_amount === 0) {
       this.win();
     } else {
-      this.cardsReset();
+      this.roundReset();
     }
   }
 
-  cardsReset() {
+  roundReset() {
     this._first_card = null;
     this._second_card = null;
     this._click_enable = true;
@@ -170,13 +181,6 @@ class Game {
     setTimeout(() => {
       alert("GJ");
     }, 1000);
-  }
-
-  get rows() {
-    return this._level + 3;
-  }
-  get columns() {
-    return this._level + 2;
   }
 }
 
@@ -227,14 +231,15 @@ class Timer {
 }
 
 /**
- * Карточка
+ * Базовый класс для карточки
  */
 class Card {
   constructor(type, id) {
     this._type = type;
     this._id = id;
     this._state = "close";
-    this.node = this._getNode();
+    this.node = this._getNode(); // каждый дочерний класс должен иметь метод _getNode().
+    // он возвращает узел с разметкой карточки.
   }
 
   open() {
@@ -243,7 +248,7 @@ class Card {
   }
   remove() {
     this._state = "remove";
-    this.node.classList.add("hide");
+    this.node.classList.add("remove");
   }
   close() {
     this._state = "close";
@@ -254,7 +259,7 @@ class Card {
     return Math.ceil(this._id / 2);
   }
 
-  get isOpen() {
+  isOpen() {
     return this._state === "open";
   }
 }
@@ -273,7 +278,7 @@ class ImageCard extends Card {
         <div class="card__back">
           <img src="images/${
             this._type
-          }/${this.getCoupleNumber()}.png" alt="image 1" />
+          }/${this.getCoupleNumber()}.png" alt="image ${this.id}" />
         </div>
       </div>
     `;
