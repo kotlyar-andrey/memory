@@ -1,67 +1,102 @@
 /**
- * Игрок может выбрать настройки для будущей игры
+ * Класс, который управляет содержимым на странице
  */
-class Settings {
+class Controller {
   constructor() {
-    this._target = document.getElementById("settings");
-    this._input_rows = document.getElementById("input_rows");
-    this._input_columns = document.getElementById("input_columns");
-    this._start_button = document.getElementById("start_button");
-    this._error_target = document.getElementById("message_container");
-    this._start_button.addEventListener("click", () => {
-      this._onStart();
-    });
-    this._error_messages = {
-      invalid_rows: "<br>Недопустимое количество рядов",
-      invalid_cols: "<br>Недопустимое количество столбцов",
-      odd: "<br>Нечетное количество карточек",
-      girls: "<br>Героинь больше 12<br>Выберите другое количество",
+    this._node = document.getElementById("target");
+    this._settings = new Settings(this._getGameSettings());
+    this._timer = new Timer();
+    this._game = new Game();
+    this._game_settings = null;
+    this._showSettings();
+  }
+
+  _getGameSettings() {
+    return (game_settings) => {
+      this._game_settings = game_settings;
+      this._createGame();
     };
   }
 
-  _onStart() {
+  _showSettings() {
+    this._node.innerHTML = "";
+    this._node.append(this._settings._node);
+  }
+
+  _createGame() {
+    console.log("create game");
+    this._game.init(this._game_settings, this._timer);
+    this._node.innerHTML = "";
+    this._node.append(this._game._node);
+    this._node.insertAdjacentElement("beforebegin", this._timer._node);
+  }
+}
+
+/**
+ * Игрок может выбрать настройки для будущей игры.
+ * Класс позволяет получить словарь с количеством рядов, столбцов и типом изображений
+ * Конструктор принимает callback, в который передаются выбранные пользователем настройки
+ */
+class Settings {
+  constructor(callback) {
+    this._node = document.getElementById("settings");
+    this.callback = callback;
+    this._input_rows = document.getElementById("input_rows");
+    this._input_columns = document.getElementById("input_columns");
+    this._start_button = document.getElementById("start_button");
+    this._start_button.addEventListener("click", () => {
+      this.saveSettings();
+    });
+
+    this._error_target = document.getElementById("message_container");
+    this._error_messages = {
+      invalid_rows: "Недопустимое количество рядов",
+      invalid_cols: "Недопустимое количество столбцов",
+      odd: "Нечетное количество карточек",
+      girls: "Героинь не может быть больше 12",
+    };
+  }
+
+  saveSettings() {
     const rows = this._input_rows.value;
-    const cols = this._input_columns.value;
-    const image_type = document.querySelector(
+    const columns = this._input_columns.value;
+    const card_type = document.querySelector(
       'input[name="image_type"]:checked'
     ).value;
-    const is_data_valid = this._checkGameData(rows, cols, image_type);
+    const is_data_valid = this._checkGameData(rows, columns, card_type);
     if (is_data_valid) {
-      this._creaateGame(rows, cols, image_type);
+      this.callback({ rows, columns, card_type });
     }
   }
 
-  _checkGameData(rows, cols, image_type) {
-    let error_message = "";
-    const cards_amount = rows * cols;
+  _checkGameData(rows, columns, card_type) {
+    const error_message = document.createElement("div");
+    const cards_amount = rows * columns;
     this._error_target.innerHTML = "";
     if (rows < MIN_CARDS || rows > MAX_CARDS) {
-      error_message += this._error_messages.invalid_rows;
+      error_message.append(
+        this._getErrorRow(this._error_messages.invalid_rows)
+      );
     }
-    if (cols < MIN_CARDS || cols > MAX_CARDS) {
-      error_message += this._error_messages.invalid_cols;
+    if (columns < MIN_CARDS || columns > MAX_CARDS) {
+      error_message.append(
+        this._getErrorRow(this._error_messages.invalid_cols)
+      );
     }
     if (cards_amount % 2 !== 0) {
-      error_message += this._error_messages.odd;
+      error_message.append(this._getErrorRow(this._error_messages.odd));
     }
-    if (image_type === "girls" && cards_amount > 12) {
-      error_message += this._error_messages.girls;
+    if (card_type === "girls" && cards_amount > 12) {
+      error_message.append(this._getErrorRow(this._error_messages.girls));
     }
-    this._error_target.innerHTML = error_message;
-    return error_message === "";
+    this._error_target.append(error_message);
+    return error_message.childNodes.length === 0;
   }
 
-  _creaateGame(rows, cols, image_type) {
-    this._hideSettings();
-    const game = new Game(rows, cols, image_type, this);
-  }
-
-  _hideSettings() {
-    this._target.classList.add("none");
-  }
-
-  showSettings() {
-    this._target.classList.remove("none");
+  _getErrorRow(message) {
+    const error_node = document.createElement("p");
+    error_node.textContent = message;
+    return error_node;
   }
 }
 
@@ -69,41 +104,37 @@ class Settings {
  * Главный класс игры
  */
 class Game {
-  constructor(rows, columns, image_type, settings) {
-    this._target = document.querySelector(".game");
-    this._settings = settings;
-    this._rows = rows;
-    this._cols = columns;
-    this._card_type = image_type;
-    this._click_enable = true;
+  constructor() {
+    this._node = document.createElement("div");
+    this._node.classList.add("game");
+    this._rows = null;
+    this._columns = null;
+    this._card_type = null;
     this._first_card = null;
     this._second_card = null;
-    this._cards_amount = this._rows * this._cols;
+    this._click_enable = true;
+    this._cards_amount = null;
     this._is_first_click = true;
-    this._timer = new Timer();
-    this._init();
+    this._timer = null;
   }
 
-  _init() {
-    this._target.innerHTML = "";
+  init({ rows, columns, card_type }, timer) {
+    this._rows = rows;
+    this._columns = columns;
+    this._card_type = card_type;
+    this._cards_amount = rows * columns;
+    this._timer = timer;
     const cards = this._createCards();
     cards.forEach((card) => {
-      this._target.appendChild(card.node);
+      this._node.appendChild(card.node);
     });
-
-    this._target.classList.remove("none");
-    this._target.classList.add(`columns_${this._cols}`);
-    console.log("game is inited");
-    //this.start();
+    this._node.classList.add(`columns_${this._columns}`);
   }
 
   _createCards() {
     const numbersArray = this._getRandomArray(this._cards_amount);
     const cards = numbersArray.map((number) => {
       const card = this._createCard(this._card_type, number);
-      card.node.addEventListener("click", () => {
-        this._cardClick(card);
-      });
       return card;
     });
     return cards;
@@ -119,28 +150,30 @@ class Game {
     switch (type) {
       case "girls":
       case "monsters":
-        return new ImageCard(type, number);
+        return new ImageCard(type, number, this._cardClick());
       case "colors":
-        return new ColorCard(number);
+        return new ColorCard(number, this._cardClick());
       default:
-        return new ColorCard(number);
+        return new ColorCard(number, this._cardClick());
     }
   }
 
-  _cardClick(card) {
-    if (this._is_first_click) {
-      this._is_first_click = false;
-      this._timer.start();
-    }
-    if (this._click_enable && card._state === "close") {
-      card.open();
-      if (!this._first_card) {
-        this._first_card = card;
-      } else {
-        this._second_card = card;
-        this._checkCards();
+  _cardClick() {
+    return (card) => {
+      if (this._is_first_click) {
+        this._is_first_click = false;
+        this._timer.start();
       }
-    }
+      if (this._click_enable && card._state === "close") {
+        card.open();
+        if (!this._first_card) {
+          this._first_card = card;
+        } else {
+          this._second_card = card;
+          this._checkCards();
+        }
+      }
+    };
   }
 
   _checkCards() {
@@ -148,20 +181,20 @@ class Game {
     if (
       this._first_card.getCoupleNumber() === this._second_card.getCoupleNumber()
     ) {
-      this._roundWin();
+      this._cardsCorrect();
     } else {
-      this._roundLose();
+      this._cardsWrong();
     }
   }
 
-  _roundWin() {
+  _cardsCorrect() {
     this._first_card.remove();
     this._second_card.remove();
     this._cards_amount -= 2;
     this._checkGameWin();
   }
 
-  _roundLose() {
+  _cardsWrong() {
     setTimeout(() => {
       this._first_card.close();
       this._second_card.close();
@@ -184,12 +217,12 @@ class Game {
   }
 
   _repeat_game() {
-    this._target.classList.add("none");
+    this._node.classList.add("none");
     this._init();
   }
 
   _new_game() {
-    this._target.classList.add("none");
+    this._node.classList.add("none");
     this._settings.showSettings();
   }
 
@@ -204,8 +237,8 @@ class Game {
     );
     repeat_button.addEventListener("click", () => this._repeat_game());
     new_game_button.addEventListener("click", () => this._new_game());
-    this._target.insertAdjacentElement("beforebegin", new_game_button);
-    this._target.insertAdjacentElement("beforebegin", repeat_button);
+    this._node.insertAdjacentElement("beforebegin", new_game_button);
+    this._node.insertAdjacentElement("beforebegin", repeat_button);
   }
 
   _createButton(text, style) {
@@ -228,9 +261,9 @@ class Game {
  */
 class Timer {
   constructor() {
+    this._node = document.createElement("h3");
+    this._node.classList.add("timer");
     this._seconds = 0;
-    this._target = document.getElementById("timer");
-    this._target.classList.remove("none");
     this._showTime();
   }
 
@@ -246,15 +279,7 @@ class Timer {
   }
 
   _showTime() {
-    this._target.textContent = `${this.minutes}:${this.seconds}`;
-  }
-
-  reset() {
-    this._seconds = 0;
-  }
-
-  hide() {
-    this._target.classList.add("none");
+    this._node.textContent = this.time;
   }
 
   get seconds() {
@@ -263,7 +288,11 @@ class Timer {
   }
 
   get minutes() {
-    return Math.floor(parseInt(this._seconds) / 60).toString();
+    return Math.floor(parseInt(this._seconds) / 60);
+  }
+
+  get time() {
+    return `${this.minutes}:${this.seconds}`;
   }
 }
 
@@ -271,12 +300,15 @@ class Timer {
  * Базовый класс для карточки
  */
 class Card {
-  constructor(type, id) {
+  constructor(type, id, callback) {
     this._type = type;
     this._id = id;
+    this._callback = callback;
     this._state = "close";
-    this.node = this._getNode(); // каждый дочерний класс должен иметь метод _getNode().
-    // он возвращает узел с разметкой карточки.
+    this.node = this._getNode();
+    this.node.addEventListener("click", () => {
+      callback(this);
+    });
   }
 
   open() {
@@ -295,15 +327,11 @@ class Card {
   getCoupleNumber() {
     return Math.ceil(this._id / 2);
   }
-
-  isOpen() {
-    return this._state === "open";
-  }
 }
 
 class ImageCard extends Card {
-  constructor(type, id) {
-    super(type, id);
+  constructor(type, id, callback) {
+    super(type, id, callback);
   }
 
   _getNode() {
@@ -324,8 +352,8 @@ class ImageCard extends Card {
 }
 
 class ColorCard extends Card {
-  constructor(id) {
-    super("colors", id);
+  constructor(id, callback) {
+    super("colors", id, callback);
   }
   _getNode() {
     const node = document.createElement("div");
@@ -393,5 +421,4 @@ class ColorCard extends Card {
 MIN_CARDS = 2;
 MAX_CARDS = 8;
 
-const settings = new Settings();
-// game.init();
+const main = new Controller();

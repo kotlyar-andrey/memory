@@ -13,8 +13,8 @@ body {
   background-color: #f0f0f0;
 }
 
-.none {
-  display: none !important;
+.html-templates {
+  display: none;
 }
 
 .main {
@@ -35,7 +35,7 @@ body {
   box-sizing: border-box;
 }
 
-.container {
+.target {
   border: 2px solid #000000;
   padding: 10px;
   border-radius: 4px;
