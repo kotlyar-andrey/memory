@@ -53,11 +53,15 @@ class Settings {
 
   _creaateGame(rows, cols, image_type) {
     this._hideSettings();
-    const game = new Game(rows, cols, image_type);
+    const game = new Game(rows, cols, image_type, this);
   }
 
   _hideSettings() {
     this._target.classList.add("none");
+  }
+
+  showSettings() {
+    this._target.classList.remove("none");
   }
 }
 
@@ -65,8 +69,9 @@ class Settings {
  * Главный класс игры
  */
 class Game {
-  constructor(rows, columns, image_type) {
+  constructor(rows, columns, image_type, settings) {
     this._target = document.querySelector(".game");
+    this._settings = settings;
     this._rows = rows;
     this._cols = columns;
     this._card_type = image_type;
@@ -74,10 +79,13 @@ class Game {
     this._first_card = null;
     this._second_card = null;
     this._cards_amount = this._rows * this._cols;
+    this._is_first_click = true;
+    this._timer = new Timer();
     this._init();
   }
 
   _init() {
+    this._target.innerHTML = "";
     const cards = this._createCards();
     cards.forEach((card) => {
       this._target.appendChild(card.node);
@@ -85,7 +93,7 @@ class Game {
 
     this._target.classList.remove("none");
     this._target.classList.add(`columns_${this._cols}`);
-
+    console.log("game is inited");
     //this.start();
   }
 
@@ -119,13 +127,11 @@ class Game {
     }
   }
 
-  start() {
-    const timer = new Timer();
-    timer.start();
-  }
-
   _cardClick(card) {
-    console.log(this._first_card, this._second_card);
+    if (this._is_first_click) {
+      this._is_first_click = false;
+      this._timer.start();
+    }
     if (this._click_enable && card._state === "close") {
       card.open();
       if (!this._first_card) {
@@ -159,27 +165,60 @@ class Game {
     setTimeout(() => {
       this._first_card.close();
       this._second_card.close();
-      this.roundReset();
+      this._roundReset();
     }, 1000);
   }
 
   _checkGameWin() {
     if (this._cards_amount === 0) {
-      this.win();
+      this._win();
     } else {
-      this.roundReset();
+      this._roundReset();
     }
   }
 
-  roundReset() {
+  _roundReset() {
     this._first_card = null;
     this._second_card = null;
     this._click_enable = true;
   }
 
-  win() {
+  _repeat_game() {
+    this._target.classList.add("none");
+    this._init();
+  }
+
+  _new_game() {
+    this._target.classList.add("none");
+    this._settings.showSettings();
+  }
+
+  _showResult() {
+    const repeat_button = this._createButton(
+      "Сыграть еще раз",
+      "button-repeat"
+    );
+    const new_game_button = this._createButton(
+      "Создать новую игру",
+      "bytton-new-game"
+    );
+    repeat_button.addEventListener("click", () => this._repeat_game());
+    new_game_button.addEventListener("click", () => this._new_game());
+    this._target.insertAdjacentElement("beforebegin", new_game_button);
+    this._target.insertAdjacentElement("beforebegin", repeat_button);
+  }
+
+  _createButton(text, style) {
+    const button = document.createElement("button");
+    button.textContent = text;
+    button.classList.add(style);
+    return button;
+  }
+
+  _win() {
+    this._timer.stop();
     setTimeout(() => {
-      alert("GJ");
+      this._showResult();
     }, 1000);
   }
 }
@@ -190,43 +229,41 @@ class Game {
 class Timer {
   constructor() {
     this._seconds = 0;
-    this._target = document.getElementById();
+    this._target = document.getElementById("timer");
+    this._target.classList.remove("none");
+    this._showTime();
   }
 
   start() {
     this._timer = setInterval(() => {
       this._seconds += 0.1;
-      this.showTime();
+      this._showTime();
     }, 100);
-  }
-  showTime() {
-    const minutes = Math.floor(parseInt(this._seconds) / 60);
-    const seconds = (this._seconds -= minutes * 60);
-    this._target.textContent = `this.time`;
   }
 
   stop() {
     clearInterval(this._timer);
   }
 
+  _showTime() {
+    this._target.textContent = `${this.minutes}:${this.seconds}`;
+  }
+
   reset() {
-    this._tenthseconds = 0;
     this._seconds = 0;
-    this._minutes = 0;
   }
 
-  get time() {
-    return `${this.minutes}:${this.seconds}.${this.tenthseconds}`;
+  hide() {
+    this._target.classList.add("none");
   }
 
-  get tenthseconds() {
-    return this._tenthseconds.toString();
-  }
   get seconds() {
-    return this._seconds < 10 ? `0${this._seconds}` : this._seconds.toString();
+    const sec = (this._seconds - this.minutes * 60).toFixed(1);
+    return sec < 10 ? `0${sec}` : sec.toString();
   }
+
   get minutes() {
-    return this._minutes.toString();
+    return Math.floor(parseInt(this._seconds) / 60).toString();
   }
 }
 
