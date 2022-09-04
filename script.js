@@ -24,8 +24,7 @@ class Controller {
   }
 
   _createGame() {
-    console.log("create game");
-    this._game.init(this._game_settings, this._timer);
+    this._game.create(this._game_settings, this._timer);
     this._node.innerHTML = "";
     this._node.append(this._game._node);
     this._node.insertAdjacentElement("beforebegin", this._timer._node);
@@ -45,7 +44,7 @@ class Settings {
     this._input_columns = document.getElementById("input_columns");
     this._start_button = document.getElementById("start_button");
     this._start_button.addEventListener("click", () => {
-      this.saveSettings();
+      this._saveSettings();
     });
 
     this._error_target = document.getElementById("message_container");
@@ -57,7 +56,7 @@ class Settings {
     };
   }
 
-  saveSettings() {
+  _saveSettings() {
     const rows = this._input_rows.value;
     const columns = this._input_columns.value;
     const card_type = document.querySelector(
@@ -75,25 +74,25 @@ class Settings {
     this._error_target.innerHTML = "";
     if (rows < MIN_CARDS || rows > MAX_CARDS) {
       error_message.append(
-        this._getErrorRow(this._error_messages.invalid_rows)
+        this._createErrorRow(this._error_messages.invalid_rows)
       );
     }
     if (columns < MIN_CARDS || columns > MAX_CARDS) {
       error_message.append(
-        this._getErrorRow(this._error_messages.invalid_cols)
+        this._createErrorRow(this._error_messages.invalid_cols)
       );
     }
     if (cards_amount % 2 !== 0) {
-      error_message.append(this._getErrorRow(this._error_messages.odd));
+      error_message.append(this._createErrorRow(this._error_messages.odd));
     }
     if (card_type === "girls" && cards_amount > 12) {
-      error_message.append(this._getErrorRow(this._error_messages.girls));
+      error_message.append(this._createErrorRow(this._error_messages.girls));
     }
     this._error_target.append(error_message);
     return error_message.childNodes.length === 0;
   }
 
-  _getErrorRow(message) {
+  _createErrorRow(message) {
     const error_node = document.createElement("p");
     error_node.textContent = message;
     return error_node;
@@ -118,7 +117,7 @@ class Game {
     this._timer = null;
   }
 
-  init({ rows, columns, card_type }, timer) {
+  create({ rows, columns, card_type }, timer) {
     this._rows = rows;
     this._columns = columns;
     this._card_type = card_type;
@@ -133,10 +132,7 @@ class Game {
 
   _createCards() {
     const numbersArray = this._getRandomArray(this._cards_amount);
-    const cards = numbersArray.map((number) => {
-      const card = this._createCard(this._card_type, number);
-      return card;
-    });
+    const cards = numbersArray.map((number) => this._createCard(number));
     return cards;
   }
 
@@ -146,11 +142,11 @@ class Game {
     return numbersArray;
   }
 
-  _createCard(type, number) {
-    switch (type) {
+  _createCard(number) {
+    switch (this._card_type) {
       case "girls":
       case "monsters":
-        return new ImageCard(type, number, this._cardClick());
+        return new ImageCard(this._card_type, number, this._cardClick());
       case "colors":
         return new ColorCard(number, this._cardClick());
       default:
