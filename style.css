@@ -102,7 +102,7 @@ body {
   position: absolute;
 }
 
-.start_button {
+.button {
   display: block;
   border: 1px solid #070;
   border-radius: 5px;
@@ -123,7 +123,6 @@ body {
 
 .game {
   display: grid;
-  gap: 20px;
   border: 1px solid green;
   width: 100%;
   height: 100%;
@@ -173,7 +172,8 @@ body {
   perspective: 1000px;
 }
 
-.card.remove {
+.card.remove,
+.hide {
   visibility: hidden;
 }
 
@@ -202,8 +202,7 @@ body {
   justify-content: center;
   align-items: center;
   padding: 10px;
-  border-radius: 20px;
-  border: 2px solid #000000;
+  border: 1px solid #000000;
 }
 
 .card__front {
@@ -231,4 +230,15 @@ body {
 
 .timer {
   text-align: center;
+  color: red;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: "green";
+  font-size: 36px;
+  color: green;
+  font-weight: bold;
 }

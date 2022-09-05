@@ -7,6 +7,7 @@ class Controller {
     this._settings = new Settings(this._getGameSettings());
     this._timer = new Timer();
     this._game = new Game();
+    this._results = new Results(this._repeatGame(), this._resetGame());
     this._game_settings = null;
     this._showSettings();
   }
@@ -23,11 +24,31 @@ class Controller {
     this._node.append(this._settings._node);
   }
 
+  _showResults() {
+    return () => {
+      this._results.init(this._timer.time);
+      this._node.innerHTML = "";
+      this._node.append(this._results._node);
+    };
+  }
+
   _createGame() {
-    this._game.create(this._game_settings, this._timer);
+    this._game.create(this._game_settings, this._timer, this._showResults());
     this._node.innerHTML = "";
     this._node.append(this._game._node);
     this._node.insertAdjacentElement("beforebegin", this._timer._node);
+  }
+
+  _repeatGame() {
+    return () => {
+      this._createGame();
+    };
+  }
+
+  _resetGame() {
+    return () => {
+      this._showSettings();
+    };
   }
 }
 
@@ -117,17 +138,26 @@ class Game {
     this._timer = null;
   }
 
-  create({ rows, columns, card_type }, timer) {
+  create({ rows, columns, card_type }, timer, callback) {
+    this._node.innerHTML = "";
     this._rows = rows;
     this._columns = columns;
     this._card_type = card_type;
     this._cards_amount = rows * columns;
     this._timer = timer;
+    this._callback = callback;
+    this._is_first_click = true;
+    this._click_enable = true;
+    this._first_card = null;
+    this._second_card = null;
+    this._timer.reset();
+    this._timer._show();
     const cards = this._createCards();
     cards.forEach((card) => {
       this._node.appendChild(card.node);
     });
-    this._node.classList.add(`columns_${this._columns}`);
+    this._node.classList.remove(...this._node.classList);
+    this._node.classList.add("game", `columns_${this._columns}`);
   }
 
   _createCards() {
@@ -212,43 +242,11 @@ class Game {
     this._click_enable = true;
   }
 
-  _repeat_game() {
-    this._node.classList.add("none");
-    this._init();
-  }
-
-  _new_game() {
-    this._node.classList.add("none");
-    this._settings.showSettings();
-  }
-
-  _showResult() {
-    const repeat_button = this._createButton(
-      "Сыграть еще раз",
-      "button-repeat"
-    );
-    const new_game_button = this._createButton(
-      "Создать новую игру",
-      "bytton-new-game"
-    );
-    repeat_button.addEventListener("click", () => this._repeat_game());
-    new_game_button.addEventListener("click", () => this._new_game());
-    this._node.insertAdjacentElement("beforebegin", new_game_button);
-    this._node.insertAdjacentElement("beforebegin", repeat_button);
-  }
-
-  _createButton(text, style) {
-    const button = document.createElement("button");
-    button.textContent = text;
-    button.classList.add(style);
-    return button;
-  }
-
   _win() {
     this._timer.stop();
     setTimeout(() => {
-      this._showResult();
-    }, 1000);
+      this._callback();
+    }, 500);
   }
 }
 
@@ -264,6 +262,7 @@ class Timer {
   }
 
   start() {
+    this._show();
     this._timer = setInterval(() => {
       this._seconds += 0.1;
       this._showTime();
@@ -271,7 +270,21 @@ class Timer {
   }
 
   stop() {
+    this._hide();
     clearInterval(this._timer);
+  }
+
+  reset() {
+    this._seconds = 0;
+  }
+
+  _hide() {
+    this._node.classList.add("hide");
+  }
+
+  _show() {
+    this._showTime();
+    this._node.classList.remove("hide");
   }
 
   _showTime() {
@@ -411,6 +424,42 @@ class ColorCard extends Card {
     ];
     const couple_number = this.getCoupleNumber();
     return colors[couple_number];
+  }
+}
+
+/**
+ * Класс с результатами игры.
+ * Принимает два callback - рестарт существующей и создание новой игры
+ */
+class Results {
+  constructor(repeat, reset) {
+    this._repeatButton = this._createButton(
+      "Сыграть еще раз",
+      "button",
+      repeat
+    );
+    this._resetButton = this._createButton(
+      "Создать новую игру",
+      "button",
+      reset
+    );
+    this._node = null;
+  }
+
+  init(time) {
+    const node = document.createElement("div");
+    node.classList.add("results");
+    node.textContent = time;
+    node.append(this._repeatButton, this._resetButton);
+    this._node = node;
+  }
+
+  _createButton(text, style, callback) {
+    const button = document.createElement("button");
+    button.textContent = text;
+    button.classList.add(style);
+    button.addEventListener("click", callback);
+    return button;
   }
 }
 
