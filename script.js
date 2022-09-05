@@ -355,7 +355,7 @@ class ImageCard extends Card {
         <div class="card__back">
           <img src="images/${
             this._type
-          }/${this.getCoupleNumber()}.png" alt="image ${this.id}" />
+          }/${this.getCoupleNumber()}.png" alt="image${this._id}" />
         </div>
       </div>
     `;
